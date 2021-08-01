@@ -1,0 +1,5 @@
+rm int2
+gfortran -c -O3 -w -march=native -std=legacy test_hank106_fast.f
+gfortran -O3 -w -std=legacy -march=native -o int2 test_hank106_fast.o ../src/hank103.f \
+    ../src/hank106_fast.f ../src/hkrand.f ../src/dlaran.f ../src/prini.f
+./int2
