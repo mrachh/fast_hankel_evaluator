@@ -111,16 +111,16 @@ c
         lh1s=lh1s*2
 c
         ih0derss=ih1s+lh1s
-        lh0derss=(ninterv*n+4)*2
+        lh0derss=(ninterv*n+4)*4
 c
         ih1derss=ih0derss+lh0derss
         lh1derss=(ninterv*n+4)*2
 c
-        keep=ih1derss+lh1derss
+        keep=ih0derss+lh0derss
 c
         call hank106ini(coef,x1,x2,ninterv,n,
      1      w(icenters),w(ih0derss),w(ih0s),w(ih1s),h,
-     2      w(ih1derss),u07)
+     2      u07)
 c
         u0=1/u07
 c
@@ -169,9 +169,9 @@ c
 c
 c
         subroutine hank106ini(coef,x1,x2,ninterv,n,
-     1      centers,h0derss,h0s,h1s,h,h1derss,u0)
+     1      centers,h0derss,h0s,h1s,h,u0)
         implicit real *8 (a-h,o-z)
-        complex *16 h0s(1),h0derss(n,1),h1derss(n,1),ima,u0,
+        complex *16 h0s(1),h0derss(2,n,1),ima,u0,
      1      us(22),h1s(1)
         dimension centers(2,1)
 c
@@ -191,11 +191,12 @@ c
 c
 c        construct the values of Hankel functions and their
 c        derivatibes at the centers
+
 c
         do 1400 i=1,ninterv
 c
         call hank0ders(centers(1,i),n,h0s(i),h1s(i),
-     1      h0derss(1,i),h1derss(1,i) )
+     1      h0derss(1,1,i) )
  1400 continue
 c
 c       scale them things by factorials and by complex powers
@@ -212,8 +213,8 @@ c
         do 1800 i=1,ninterv
         fact=1
         do 1600 j=1,n-1
-        h0derss(j,i)=h0derss(j,i)*fact * us(j)
-        h1derss(j,i)=h1derss(j,i)*fact * us(j)
+        h0derss(1,j,i)=h0derss(1,j,i)*fact * us(j)
+        h0derss(2,j,i)=h0derss(2,j,i)*fact * us(j)
 c
         fact=fact/(j+1)
  1600 continue
@@ -227,9 +228,9 @@ c
 c
 c
 c
-        subroutine hank0ders(z,n,h0,h1,h0ders,h1ders)
+        subroutine hank0ders(z,n,h0,h1,h0ders)
         implicit real *8 (a-h,o-z)
-        complex *16 z,h0,h0ders(1),h1,h1ders(1)
+        complex *16 z,h0,h0ders(2,1),h1
 c
         data ifexpon/1/
 c 
@@ -237,23 +238,24 @@ c        evaluate h0 and h1
 c
         call hank103(z,h0,h1,ifexpon)
 c
-        h0ders(1)=-h1
-        h0ders(2)=-(h0ders(1)/z+h0)
-        h0ders(3)=-(2*h0ders(2)+h0ders(1)*z+h0)/z
-        h0ders(4)=-(3*h0ders(3)+h0ders(2)*z+2*h0ders(1))/z
+        h0ders(1,1)=-h1
+        h0ders(1,2)=-(h0ders(1,1)/z+h0)
+        h0ders(1,3)=-(2*h0ders(1,2)+h0ders(1,1)*z+h0)/z
+        h0ders(1,4)=-(3*h0ders(1,3)+h0ders(1,2)*z+2*h0ders(1,1))/z
 c
         if(n .le. 4) return
 c
         do 1400 m=2,n-2
 c
-        h0ders(m+2)=-( (m+1)*h0ders(m+1)+z*h0ders(m)+
-     1      m*h0ders(m-1) )/z
+        h0ders(1,m+2)=-( (m+1)*h0ders(1,m+1)+z*h0ders(1,m)+
+     1      m*h0ders(1,m-1) )/z
  1400 continue
 c
         do 1600 i=1,n-1
 c
-        h1ders(i)=-h0ders(i+1)
+        h0ders(2,i)=-h0ders(1,i+1)
  1600 continue
+        h0ders(2,n) = 0
 c
         return
         end
@@ -423,7 +425,7 @@ c
         i1 = istart(i)
         if (intnum.le.ninterval.and.intnum.ge.1) then
           call hank106eva(r,w(i1),w(i1+ijws(1,i)),
-     1     w(i1+ijws(2,i)),h0,w(i1+1),nintervec(i))
+     1     w(i1+ijws(2,i)),h0,w(i1+1),nintervec(i),1)
         else
            z = r
            call hank103(z,h0,h1,ifexpon)
@@ -526,8 +528,8 @@ c
         i = intnum
         i1 = istart(i)
         if (intnum.le.ninterval.and.intnum.ge.1) then
-          call hank106eva(r,w(i1),w(i1+ijws(3,i)),
-     1     w(i1+ijws(4,i)),h1,w(i1+1),nintervec(i))
+          call hank106eva(r,w(i1),w(i1+ijws(1,i)),
+     1     w(i1+ijws(4,i)),h1,w(i1+1),nintervec(i),2)
         else
            z = r
            call hank103(z,h0,h1,ifexpon)
@@ -627,7 +629,7 @@ c
         i1 = istart(i)
         if (intnum.le.ninterval.and.intnum.ge.1) then
           call hank106eva2(r,w(i1),w(i1+ijws(1,i)),
-     1     w(i1+ijws(2,i)),w(i1+ijws(3,i)),
+     1     w(i1+ijws(2,i)),
      1     w(i1+ijws(4,i)),h0,h1,w(i1+1),nintervec(i))
         else
            z = r
@@ -641,9 +643,9 @@ c
 c
 c
         subroutine hank106eva(r,x1,h0derss,
-     1      h0s,h0,h,ninterv)
+     1      h0s,h0,h,ninterv,ii)
         implicit real *8 (a-h,o-z)
-        real *8 h0s(2,ninterv),h0derss(2,11,ninterv),h0(2)
+        real *8 h0s(2,ninterv),h0derss(2,2,11,ninterv),h0(2)
         real *8 x1,h
 c
 c 
@@ -655,6 +657,7 @@ c-----------------------------------
 c
 c       find the subinterval where the point z lives
 c
+
         i=(r-x1)*h +1
         if (i.lt.0) then 
             i = 1
@@ -667,11 +670,13 @@ c
 c        evaluate the functions h0 and h1 at the point z
 c
 c
-        h0(:)=(((((((((h0derss(:,10,i)*t+
-     2      h0derss(:,9,i))*t+h0derss(:,8,i) ) 
-     1    * t+h0derss(:,7,i))*t+h0derss(:,6,i))*t+h0derss(:,5,i))*t 
-     2    +h0derss(:,4,i))*t+h0derss(:,3,i))*t+h0derss(:,2,i))
-     3    *t+h0derss(:,1,i) ) * t + h0s(:,i)
+        h0(:)=(((((((((h0derss(:,ii,10,i)*t+
+     2      h0derss(:,ii,9,i))*t+h0derss(:,ii,8,i) ) 
+     1    * t+h0derss(:,ii,7,i))*t+h0derss(:,ii,6,i))*t+
+     1      h0derss(:,ii,5,i))*t 
+     2    +h0derss(:,ii,4,i))*t+h0derss(:,ii,3,i))*t+
+     1      h0derss(:,ii,2,i))
+     3    *t+h0derss(:,ii,1,i) ) * t + h0s(:,i)
 c
 c
         return
@@ -684,11 +689,11 @@ c
 c
 c
         subroutine hank106eva2(r,x1,h0derss,
-     1      h0s,h1derss,h1s,h0,h1,h,ninterv)
+     1      h0s,h1s,h0,h1,h,ninterv)
         implicit real *8 (a-h,o-z)
-        real *8 h0s(2,ninterv),h0derss(2,11,ninterv),h0(2)
-        real *8 h1s(2,ninterv),h1derss(2,11,ninterv),h1(2)
-        real *8 x1,h
+        real *8 h0s(2,ninterv),h0derss(2,2,11,ninterv),h0(2)
+        real *8 h1s(2,ninterv),h1(2)
+        real *8 x1,h,ht(2,2)
 c
 c 
 c   input:
@@ -711,17 +716,18 @@ c
 c        evaluate the functions h0 and h1 at the point z
 c
 c
-        h0(:)=(((((((((h0derss(:,10,i)*t+
-     2      h0derss(:,9,i))*t+h0derss(:,8,i) ) 
-     1    * t+h0derss(:,7,i))*t+h0derss(:,6,i))*t+h0derss(:,5,i))*t 
-     2    +h0derss(:,4,i))*t+h0derss(:,3,i))*t+h0derss(:,2,i))
-     3    *t+h0derss(:,1,i) ) * t + h0s(:,i)
-c
-        h1(:)=(((((((((h1derss(:,10,i)*t+
-     2      h1derss(:,9,i))*t+h1derss(:,8,i) ) 
-     1    * t+h1derss(:,7,i))*t+h1derss(:,6,i))*t+h1derss(:,5,i))*t 
-     2    +h1derss(:,4,i))*t+h1derss(:,3,i))*t+h1derss(:,2,i))
-     3    *t+h1derss(:,1,i) ) * t + h1s(:,i)
+ccc        print *, r
+        ht(:,:)=(((((((((h0derss(:,:,10,i)*t+
+     2      h0derss(:,:,9,i))*t+h0derss(:,:,8,i) ) 
+     1    * t+h0derss(:,:,7,i))*t+h0derss(:,:,6,i))*t+
+     1      h0derss(:,:,5,i))*t 
+     2    +h0derss(:,:,4,i))*t+h0derss(:,:,3,i))*t+h0derss(:,:,2,i))
+     3    *t+h0derss(:,:,1,i) ) * t 
+c     1      + h0s(:,i)
+
+        h0(:) = ht(:,1)+h0s(:,i)
+        h1(:) = ht(:,2)+h1s(:,i)
+
 c
 c
         return
@@ -757,47 +763,72 @@ c
 c      the point is not on the same subinterval as the preceding one.
 c      if nn is less than ithresh, use direct scan to find the proper 
 c      interval
+
 c
-       if(nn .gt. ithresh) goto 3000
+ccc       if(nn .gt. ithresh) goto 3000
 c
+
+ccc        do j=nn,1,-1
+ccc
+ccc           intnum=j
+cccc
+ccc        if(ab(1,j) .le. x) goto 2400
+ccc
+ccc        enddo
+
+        if (x .ge. 1.04857599735260000d0) then
 c
-        do 2200 j=1,nn
+        do j=20,nn
 c
            intnum=j
 c
         if(ab(2,j) .ge. x) goto 2400
- 2200 continue
+
+        enddo
+
+        else
+
+        do j=20,1,-1
+
+           intnum=j
+c
+        if(ab(1,j) .le. x) goto 2400
+
+        enddo
+
+        endif
 c
  2400 continue
 c
         return
 c
- 3000 continue
-c
-c      The point is not on the same subinterval as the preceding one,
-c      and nn is greater than ithresh; use bisection to find the proper 
-c      interval
-c
-       i1=1
-       i2=nn
-       i3=(i1+i2)/2
-c
-cccc       nsteps=0
-       do 3400 i=1,100
-c
-       if(x .ge. ab(1,i3)) i1=i3
-       if(x .le. ab(2,i3)) i2=i3
-c
-       if(i2 .eq. i1) goto 3600
-c
-       i3=(i1+i2)/2
- 3400 continue
-c
- 3600 continue
-       if(x .lt. ab(1,i3)) i3=i3-1
-       if(x .gt. ab(2,i3)) i3=i3+1
-
-       intnum=i3
+ccc 3000 continue
+cccc
+cccc      The point is not on the same subinterval as the preceding one,
+cccc      and nn is greater than ithresh; use bisection to find the proper 
+cccc      interval
+cccc
+ccc       i1=1
+ccc       i2=nn
+ccccc       i3=(i1+i2)/2
+ccc       i3 = 19
+cccc
+ccccccc       nsteps=0
+ccc       do 3400 i=1,100
+cccc
+ccc       if(x .ge. ab(1,i3)) i1=i3
+ccc       if(x .le. ab(2,i3)) i2=i3
+cccc
+ccc       if(i2 .eq. i1) goto 3600
+cccc
+ccc       i3=(i1+i2)/2
+ccc 3400 continue
+cccc
+ccc 3600 continue
+ccc       if(x .lt. ab(1,i3)) i3=i3-1
+ccc       if(x .gt. ab(2,i3)) i3=i3+1
+ccc
+ccc       intnum=i3
 c       
         return
         end
