@@ -1,0 +1,4 @@
+1. add versions for hank106 eval along rays in complex plane
+2. fix hank103l to reduce number of terms required in eval since |z|<1e-6
+3. Possible improvements for larger arg asymptotics too
+4. Precomp and faster routines for combined field eval
